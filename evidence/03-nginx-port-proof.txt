@@ -1,0 +1,14 @@
+$ docker exec nginx netstat -tln   # which ports is nginx listening on?
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      
+tcp        0      0 127.0.0.11:34909        0.0.0.0:*               LISTEN      
+
+$ docker exec nginx wget -S -O /dev/null http://127.0.0.1:81/   # knock on door 81
+Connecting to 127.0.0.1:81 (127.0.0.1:81)
+wget: can't connect to remote host (127.0.0.1): Connection refused
+
+$ docker exec nginx wget -S -O /dev/null http://127.0.0.1:80/health   # knock on door 80
+Connecting to 127.0.0.1:80 (127.0.0.1:80)
+  HTTP/1.1 502 Bad Gateway
+wget: server returned error: HTTP/1.1 502 Bad Gateway
