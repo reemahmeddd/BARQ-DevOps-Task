@@ -1,0 +1,33 @@
+$ docker exec nginx nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+$ docker restart nginx
+nginx
+
+$ 10 x curl http://127.0.0.1:8080/instance
+ 1: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+ 2: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+ 3: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+ 4: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+ 5: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+ 6: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+ 7: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+ 8: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+ 9: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+10: {"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}  [HTTP 200]
+
+$ curl http://127.0.0.1:8080/
+{"instance_id":"app-01","message":"Welcome to BARQ Systems","service":"barq-api","version":"2.0.0"}  
+[HTTP 200]
+$ curl http://127.0.0.1:8080/health
+{"instance_id":"app-01","service":"barq-api","status":"alive","version":"2.0.0"}  
+[HTTP 200]
+$ curl http://127.0.0.1:8080/ready
+{"dependencies":{"postgres":"unavailable","redis":"unavailable"},"instance_id":"app-01","service":"barq-api","status":"not_ready","version":"2.0.0"}  
+[HTTP 503]
+$ curl http://127.0.0.1:8080/records
+{"error":"postgres_unavailable","instance_id":"app-01","service":"barq-api","version":"2.0.0"}  
+[HTTP 503]
+$ curl http://127.0.0.1:8080/counter
+{"error":"redis_unavailable","instance_id":"app-01","service":"barq-api","version":"2.0.0"}  
+[HTTP 503]
