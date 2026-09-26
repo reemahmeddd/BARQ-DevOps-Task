@@ -1,0 +1,22 @@
+$ docker compose -p barq-assessment up -d nginx
+ Container app-02 Running 
+ Container app-01 Running 
+ Container nginx Recreate 
+ Container nginx Recreated 
+ Container nginx Starting 
+ Container nginx Started 
+
+$ docker compose -p barq-assessment ps nginx
+NAME      STATUS         PORTS
+nginx     Up 3 seconds   127.0.0.1:8080->80/tcp
+
+$ curl -i http://127.0.0.1:8080/
+HTTP/1.1 502 Bad Gateway
+Server: nginx/1.28.3
+Date: Sat, 26 Sep 2026 22:56:17 GMT
+[curl exit 0]
+$ curl -i http://127.0.0.1:8080/health
+HTTP/1.1 502 Bad Gateway
+Server: nginx/1.28.3
+Date: Sat, 26 Sep 2026 22:56:17 GMT
+[curl exit 0]
