@@ -1,0 +1,21 @@
+$ docker logs --tail 15 app-01
+127.0.0.1 - - [26/Sep/2026 23:04:46] "[33mGET /healthz HTTP/1.1[0m" 404 -
+{"timestamp": "2026-09-26T23:04:51.489+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "app-01", "request_id": "2a9991f2869747ec835dd2b578057577", "method": "GET", "path": "/healthz", "status": 404, "duration_ms": 0.102}
+127.0.0.1 - - [26/Sep/2026 23:04:51] "[33mGET /healthz HTTP/1.1[0m" 404 -
+{"timestamp": "2026-09-26T23:04:56.805+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "app-01", "request_id": "c9848c2319984a7487aaeb0608ce8cd3", "method": "GET", "path": "/healthz", "status": 404, "duration_ms": 0.087}
+127.0.0.1 - - [26/Sep/2026 23:04:56] "[33mGET /healthz HTTP/1.1[0m" 404 -
+{"timestamp": "2026-09-26T23:05:02.134+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "app-01", "request_id": "ebd5761052284b6da87168c7df297272", "method": "GET", "path": "/healthz", "status": 404, "duration_ms": 0.087}
+127.0.0.1 - - [26/Sep/2026 23:05:02] "[33mGET /healthz HTTP/1.1[0m" 404 -
+{"timestamp": "2026-09-26T23:05:07.420+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "app-01", "request_id": "3eba178a88e54eeebecf540f86231f6e", "method": "GET", "path": "/healthz", "status": 404, "duration_ms": 0.096}
+127.0.0.1 - - [26/Sep/2026 23:05:07] "[33mGET /healthz HTTP/1.1[0m" 404 -
+{"timestamp": "2026-09-26T23:05:12.763+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "app-01", "request_id": "47f2be5349c44d969d031515c1054cfd", "method": "GET", "path": "/healthz", "status": 404, "duration_ms": 0.178}
+127.0.0.1 - - [26/Sep/2026 23:05:12] "[33mGET /healthz HTTP/1.1[0m" 404 -
+{"timestamp": "2026-09-26T23:05:18.202+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "app-01", "request_id": "980b37080ce74a0185e2c582589227dd", "method": "GET", "path": "/healthz", "status": 404, "duration_ms": 0.116}
+127.0.0.1 - - [26/Sep/2026 23:05:18] "[33mGET /healthz HTTP/1.1[0m" 404 -
+{"timestamp": "2026-09-26T23:05:23.501+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "app-01", "request_id": "29084a9bdd154f0d8e5cc84c96b087cb", "method": "GET", "path": "/healthz", "status": 404, "duration_ms": 0.802}
+127.0.0.1 - - [26/Sep/2026 23:05:23] "[33mGET /healthz HTTP/1.1[0m" 404 -
+
+$ docker inspect app-01 --format "{{json .State.Health}}"   # what does the health check say?
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 404: NOT FOUND
+
