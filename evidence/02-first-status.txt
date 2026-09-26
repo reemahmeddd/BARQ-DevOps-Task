@@ -1,0 +1,32 @@
+$ docker compose -p barq-assessment ps -a
+NAME       STATUS                          PORTS
+app-01     Up About a minute (unhealthy)   8080/tcp
+app-02     Up About a minute (unhealthy)   8080/tcp
+nginx      Up About a minute               127.0.0.1:8080->81/tcp
+postgres   Up About a minute (healthy)     5432/tcp
+redis      Up About a minute (healthy)     6379/tcp
+
+$ curl http://127.0.0.1:8080/
+
+[HTTP 000]
+[curl failed: exit 52]
+$ curl http://127.0.0.1:8080/health
+
+[HTTP 000]
+[curl failed: exit 52]
+$ curl http://127.0.0.1:8080/ready
+
+[HTTP 000]
+[curl failed: exit 52]
+$ curl http://127.0.0.1:8080/instance
+
+[HTTP 000]
+[curl failed: exit 52]
+$ curl http://127.0.0.1:8080/records
+
+[HTTP 000]
+[curl failed: exit 52]
+$ curl http://127.0.0.1:8080/counter
+
+[HTTP 000]
+[curl failed: exit 52]
