@@ -1,0 +1,58 @@
+$ docker compose -p barq-assessment up -d app-01 app-02
+ Container app-02 Recreate 
+ Container app-01 Recreate 
+ Container app-01 Recreated 
+ Container app-02 Recreated 
+ Container app-02 Starting 
+ Container app-01 Starting 
+ Container app-02 Started 
+ Container app-01 Started 
+
+$ docker compose -p barq-assessment ps -a
+NAME       STATUS
+app-01     Up 25 seconds (healthy)
+app-02     Up 25 seconds (healthy)
+nginx      Up 15 minutes
+postgres   Up 23 hours (healthy)
+redis      Up 23 hours (healthy)
+
+$ curl http://127.0.0.1:8080/
+<html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.28.3</center>
+</body>
+</html>
+
+[HTTP 502]
+$ curl http://127.0.0.1:8080/health
+<html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.28.3</center>
+</body>
+</html>
+
+[HTTP 502]
+$ curl http://127.0.0.1:8080/ready
+<html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.28.3</center>
+</body>
+</html>
+
+[HTTP 502]
+$ curl http://127.0.0.1:8080/instance
+<html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.28.3</center>
+</body>
+</html>
+
+[HTTP 502]
