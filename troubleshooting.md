@@ -77,7 +77,7 @@ Commands were run from the repository root with the Compose project `barq-assess
 - Related commit: 21324c0 (proof), 81f34d7 (fix)
 - Remaining uncertainty: The split was uneven (Entry 7).
 
-# Entry 7 / 2026-09-27 14:44 / Uneven traffic split between the apps
+## Entry 7 / 2026-09-27 14:44 / Uneven traffic split between the apps
 - Symptom: 20 requests split 16/4 instead of about 10/10.
 - Hypothesis: Same cause I found in Entry 3. Each NGINX worker keeps its own round-robin state, so many workers send their first request to app-01.
 - Command or test: Added a shared memory zone to the upstream block, ran `nginx -t`, restarted nginx and sent 20 requests to `/instance`.
