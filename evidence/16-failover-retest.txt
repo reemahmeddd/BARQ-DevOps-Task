@@ -1,0 +1,29 @@
+$ docker exec nginx nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+$ docker restart nginx
+$ docker stop app-02
+app-02
+
+$ 10 x curl http://127.0.0.1:8080/instance   (app-02 stopped)
+ 1: HTTP 200  0.004250s  "instance_id":"app-01"
+ 2: HTTP 200  2.006073s  "instance_id":"app-01"
+ 3: HTTP 200  0.004357s  "instance_id":"app-01"
+ 4: HTTP 200  0.943560s  "instance_id":"app-01"
+ 5: HTTP 200  0.005595s  "instance_id":"app-01"
+ 6: HTTP 200  0.003990s  "instance_id":"app-01"
+ 7: HTTP 200  0.015282s  "instance_id":"app-01"
+ 8: HTTP 200  0.003194s  "instance_id":"app-01"
+ 9: HTTP 200  0.004532s  "instance_id":"app-01"
+10: HTTP 200  0.003762s  "instance_id":"app-01"
+
+$ curl -X POST /records   (app-02 stopped)
+{"instance_id":"app-01","record":{"id":4,"title":"created during failure"},"service":"barq-api","version":"2.0.0"}
+  [HTTP 201]
+
+$ docker start app-02   (then wait 15s: longer than fail_timeout=10s + health)
+app-02
+
+$ 10 x curl http://127.0.0.1:8080/instance | count   (after recovery)
+      5 "instance_id":"app-01"
+      5 "instance_id":"app-02"
