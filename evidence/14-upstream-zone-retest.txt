@@ -1,0 +1,8 @@
+$ docker exec nginx nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+$ docker restart nginx
+
+$ 20 x curl http://127.0.0.1:8080/instance | count by instance_id
+     10 "instance_id":"app-01"
+     10 "instance_id":"app-02"
