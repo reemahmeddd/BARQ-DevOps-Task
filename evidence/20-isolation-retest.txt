@@ -1,0 +1,31 @@
+$ docker compose -p barq-assessment up -d
+ Container redis Recreated 
+ Container postgres Recreated 
+ Container nginx Recreated 
+ Container redis Started 
+ Container postgres Started 
+ Container nginx Started 
+
+$ docker inspect nginx --format "{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}"
+barq-assessment_frontend 
+$ docker exec nginx nc -z -w2 postgres 5432
+nc: bad address 'postgres'
+  nginx -> postgres: BLOCKED
+$ docker exec nginx sh -c "printf PING | nc -w2 redis 6379"
+  nginx -> redis answered: nc: bad address 'redis'
+
+$ docker ps --format "{{.Names}}: {{.Ports}}"
+app-01: 8080/tcp
+app-02: 8080/tcp
+nginx: 127.0.0.1:8080->80/tcp
+postgres: 5432/tcp
+redis: 6379/tcp
+
+$ curl /ready, and /instance x10
+{"dependencies":{"postgres":"ready","redis":"ready"},"instance_id":"app-01","service":"barq-api","status":"ready","version":"2.0.0"}
+  [HTTP 200]
+      5 "instance_id":"app-01"
+      5 "instance_id":"app-02"
+
+# NOTE: the "redis answered" label above is a script wording error: the captured
+# text is nc's own error "bad address 'redis'", i.e. nginx cannot resolve redis. Redis did not answer (no +PONG).
