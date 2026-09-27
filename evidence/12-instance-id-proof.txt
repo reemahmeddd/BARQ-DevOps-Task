@@ -1,0 +1,10 @@
+$ docker exec app-02 printenv INSTANCE_ID
+app-01
+
+$ docker exec nginx wget -qO- http://app-02:8080/instance   # ask app-02 directly
+{"instance_id":"app-01","service":"barq-api","status":"ok","version":"2.0.0"}
+
+
+$ grep -n INSTANCE_ID docker-compose.yml
+53:      INSTANCE_ID: "app-01"
+59:      INSTANCE_ID: "app-01"
