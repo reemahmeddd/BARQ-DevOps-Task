@@ -1,0 +1,50 @@
+### 1. create a record
+  POST 'backup proof' -> HTTP 201
+  records: ['Review service readiness', 'Document the operating procedure', 'persistence test', 'non-root test', 'validate 9c9037e7', 'validate fdba4e52', 'validate 32aab635', 'validate 9f7b1292', 'validate 8318a323', 'validate 8bbcb57b', 'validate 27e70fc9', 'validate e26e650c', 'backup proof']
+
+### 2. $ ./backup.sh
+Backing up database 'barq_tasks' from container 'postgres'...
+OK: backups/barq_tasks-20260927T172032Z.dump (2403 bytes, 1 table(s) with data)
+Checksum: fa62da0df358bdfd4ab13e66407312826f3f4c8416856309fde5e4161860e0b9
+
+### 3. add a record AFTER the backup
+  POST 'created after backup' -> HTTP 201
+  records: ['Review service readiness', 'Document the operating procedure', 'persistence test', 'non-root test', 'validate 9c9037e7', 'validate fdba4e52', 'validate 32aab635', 'validate 9f7b1292', 'validate 8318a323', 'validate 8bbcb57b', 'validate 27e70fc9', 'validate e26e650c', 'backup proof', 'created after backup']
+
+### 4. simulate data loss: $ docker exec postgres psql -c "DELETE FROM records"
+DELETE 14
+  records: []
+
+### 5. $ ./restore.sh backups/barq_tasks-20260927T172032Z.dump
+Restoring 'backups/barq_tasks-20260927T172032Z.dump' into database 'barq_tasks' (current data will be replaced)...
+OK: restored. records table now has 13 row(s).
+  records: ['Review service readiness', 'Document the operating procedure', 'persistence test', 'non-root test', 'validate 9c9037e7', 'validate fdba4e52', 'validate 32aab635', 'validate 9f7b1292', 'validate 8318a323', 'validate 8bbcb57b', 'validate 27e70fc9', 'validate e26e650c', 'backup proof']
+
+### 6. $ python3 validate.py
+41/41 checks passed
+RESULT: PASS
+
+### Safety checks of restore.sh
+$ ./restore.sh   (no file)
+Usage: ./restore.sh backups/<file>.dump
+Available backups:
+exit code: 2
+$ ./restore.sh backups/does-not-exist.dump
+ERROR: 'backups/does-not-exist.dump' does not exist or is empty
+exit code: 1
+$ ./restore.sh backups/tampered.dump   (one byte appended after the checksum was taken)
+ERROR: checksum mismatch for 'backups/tampered.dump' (file changed or corrupted)
+exit code: 1
+$ ./restore.sh backups/fake.dump   (text file, no checksum)
+pg_restore: error: input file does not appear to be a valid archive (too short?)
+ERROR: 'backups/fake.dump' is not a readable pg_dump custom-format backup
+exit code: 1
+
+$ git status --short backups/   (backups are git-ignored)
+.gitignore:11:backups/	backups/barq_tasks-20260927T172032Z.dump
+# NOTE: the empty "Available backups:" list above was a redirection-order bug (2>/dev/null >&2 sent the list to /dev/null). Fixed to >&2 2>/dev/null; re-run:
+$ ./restore.sh
+Usage: ./restore.sh backups/<file>.dump
+Available backups:
+backups/barq_tasks-20260927T172032Z.dump
+exit code: 2
