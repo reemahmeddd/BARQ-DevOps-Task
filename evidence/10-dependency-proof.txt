@@ -1,0 +1,9 @@
+$ docker exec -i app-01 python - < conn_test.py
+[ports] as seen from app-01
+  postgres:5433 -> closed (ConnectionRefusedError)
+  postgres:5432 -> OPEN
+  redis:6380 -> closed (ConnectionRefusedError)
+  redis:6379 -> OPEN
+[postgres login on the correct port 5432]
+  password from app.env (...K8d): FAILED - connection failed: connection to server at "172.18.0.3", port 5432 failed: FATAL:  password authentication fai
+  password from compose (...K8c): LOGIN OK
