@@ -1,0 +1,38 @@
+$ docker compose config --format json | depends_on per service
+  app-01    no dependencies
+  app-02    no dependencies
+  nginx     {'app-01': 'service_started', 'app-02': 'service_started'}
+  postgres  no dependencies
+  redis     no dependencies
+$ docker compose -p barq-assessment down   (volumes kept)
+  containers removed: 7
+$ docker compose -p barq-assessment up -d, then poll /ready every 0.5s
+  'up -d' returned after 1.8s
+502 502 502 502 502 502 502 502 502 502 502 502 502 502 502 502 502 502 502 200 
+  first 200 after 13.1s
+
+$ docker compose ps
+NAME       STATUS
+app-01     Up 12 seconds (healthy)
+app-02     Up 12 seconds (healthy)
+nginx      Up 11 seconds (healthy)
+postgres   Up 12 seconds (healthy)
+redis      Up 12 seconds (healthy)
+$ docker logs nginx 2>&1 | grep -E "\[(error|warn)\]" | cut -c1-150 | sort by message
+18:01:49 [error] connect() failed (111: Connection refused) while connecting to upstream, client: 172.19.0.1, server: _,
+18:01:49 [error] connect() failed (111: Connection refused) while connecting to upstream, client: 172.19.0.1, server: _,
+18:01:49 [error] connect() failed (111: Connection refused) while connecting to upstream, client: 172.19.0.1, server: _,
+18:01:49 [warn] upstream server temporarily disabled while connecting to upstream, client: 172.19.0.1, server: _, reques
+18:01:49 [error] connect() failed (111: Connection refused) while connecting to upstream, client: 172.19.0.1, server: _,
+18:01:49 [warn] upstream server temporarily disabled while connecting to upstream, client: 172.19.0.1, server: _, reques
+18:01:50 [error] no live upstreams while connecting to upstream, client: 172.19.0.1, server: _, request: "GET /ready HTT
+18:01:50 [error] no live upstreams while connecting to upstream, client: 172.19.0.1, server: _, request: "GET /ready HTT
+  ...
+      4 connect() failed (111: Connection refused) while connecting to upstream
+     17 no live upstreams while connecting to upstream
+      2 upstream server temporarily disabled while connecting to upstream
+
+$ docker logs app-01 | grep -m1 "Running on"   # when did app-01 start listening?
+{"timestamp": "2026-09-27T18:01:50.045+00:00", "level": "INF
+  nginx started 2026-09-27T18:01:48.779037214Z
+  app-01 started 2026-09-27T18:01:48.004488626Z
