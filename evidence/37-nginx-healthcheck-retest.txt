@@ -1,0 +1,20 @@
+$ docker compose -p barq-assessment up -d nginx
+ Container nginx Recreated 
+ Container nginx Started 
+
+$ docker inspect -f "{{.State.Health.Status}}" nginx
+healthy
+$ docker inspect nginx: last health check output
+exit=0 exit=0 
+
+$ docker exec nginx wget -qO- http://127.0.0.1:8081/nginx-health   # inside the container
+ok
+$ curl http://127.0.0.1:8081/nginx-health   # from the laptop
+HTTP 000
+  not reachable (curl exit 7)
+$ curl http://127.0.0.1:8080/nginx-health   # via the public port
+  HTTP 404 (passed to the app, which does not know this path)
+
+$ python3 validate.py
+41/41 checks passed
+RESULT: PASS

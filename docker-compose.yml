@@ -68,6 +68,12 @@ services:
     image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
     container_name: nginx
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/nginx-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     cpus: 0.50
     mem_limit: 128m
     ports: ["127.0.0.1:${PUBLIC_PORT:-8080}:80"]
