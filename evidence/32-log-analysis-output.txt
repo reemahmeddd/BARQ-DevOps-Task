@@ -1,0 +1,169 @@
+$ python3 scripts/analyze_logs.py
+
+==============================================================================
+Q1. UTC interval, valid / malformed / duplicate lines per file
+==============================================================================
+Interval covered (all files): 2026-08-20T11:00:00.015000+00:00 -> 2026-08-20T11:30:00+00:00
+  access.log       lines= 726  valid= 725  malformed=1 [311]  exact_duplicates=5
+  application.log  lines= 730  valid= 729  malformed=1 [401]  exact_duplicates=2
+  error.log        lines=  68  valid=  68  malformed=0 []  exact_duplicates=0
+  access.log       first=2026-08-20T11:00:00.015000+00:00  last=2026-08-20T11:29:57.578000+00:00
+  application.log  first=2026-08-20T11:00:00.015000+00:00  last=2026-08-20T11:29:57.578000+00:00
+  error.log        first=2026-08-20T11:05:02+00:00  last=2026-08-20T11:30:00+00:00
+
+==============================================================================
+Q2. Distinct client requests and deduplication
+==============================================================================
+Distinct client requests (unique request_id in access.log): 720
+  valid access lines 725 - exact duplicates 5 = 720
+  request_ids repeated with DIFFERENT content: 0 []
+  requests with more than one upstream attempt (still ONE client request each): 19
+  upstream attempts in total: 739
+Cross-check: unique request_ids with an http_request event in application.log: 680
+  in access but not in app log: 40   in app but not in access: 0
+  app log records sharing a request_id with an http_request (dependency_error): 47
+
+==============================================================================
+Q3. Final client status counts and error rate
+==============================================================================
+  200:  615  (85.42%)
+  404:   10  (1.39%)
+  502:   40  (5.56%)
+  503:   47  (6.53%)
+  504:    8  (1.11%)
+Denominator: 720 distinct client requests (final status from access.log)
+  5xx error rate: 95/720 = 13.19%
+  4xx rate:       10/720 = 1.39% (client errors, e.g. unknown path)
+
+==============================================================================
+Q4. Failures (5xx) by path, time window and backend
+==============================================================================
+By path and status:
+  /          502: 10
+  /counter   502: 10
+  /counter   503: 16
+  /health    502: 10
+  /ready     503: 23
+  /records   502: 10
+  /records   503: 8
+  /records   504: 8
+By backend attempted (every attempt of a failed request):
+  172.23.0.11:8080 (app-01)    status 503: 23
+  172.23.0.11:8080 (app-01)    status 504: 4
+  172.23.0.12:8080 (app-02)    status 502: 40
+  172.23.0.12:8080 (app-02)    status 503: 24
+  172.23.0.12:8080 (app-02)    status 504: 4
+Time windows (consecutive minutes containing 5xx):
+  11:05-11:09 UTC: 40 failures {502: 40}
+  11:12-11:15 UTC: 31 failures {503: 31}
+  11:20-11:21 UTC: 16 failures {503: 16}
+  11:25-11:26 UTC: 8 failures {504: 8}
+  status 502: first 11:05:02  last 11:09:57
+  status 503: first 11:12:09  last 11:21:45
+  status 504: first 11:25:14  last 11:26:47
+
+==============================================================================
+Q5. Client latency (access.log request_time, seconds)
+==============================================================================
+  all requests  n= 720  median=0.054s  p95=2.001s  max=2.025s
+  2xx only      n= 615  median=0.055s  p95=0.093s  max=0.120s
+  5xx only      n=  95  median=0.041s  p95=2.025s  max=2.025s
+  Method: nearest-rank: sorted values, p-th percentile = value at rank ceil(p/100 * n). Units: seconds (request_time). Denominator: distinct requests.
+
+==============================================================================
+Q6. Requests retried upstream
+==============================================================================
+  attempts 502 -> 200   final client status 200: 19
+Retried: 19   succeeded after retry: 19   failed after retry: 0
+Attempt order: Counter({'172.23.0.12:8080 (app-02) -> 172.23.0.11:8080 (app-01)': 19})
+Time range: 11:05:07 -> 11:09:37
+IDs: lab-000124, lab-000130, lab-000136, lab-000142, lab-000148, lab-000154, lab-000160, lab-000166, lab-000172, lab-000178, lab-000184, lab-000190, lab-000196, lab-000202, lab-000208, lab-000214, lab-000220, lab-000226, lab-000232
+
+==============================================================================
+Q7. Timeline per minute (access = client view, error = nginx, app = dependency errors)
+==============================================================================
+  UTC   reqs  2xx  4xx  502  503  504 retry | refused timeout | dep_pg dep_rd
+  11:00   24   23    1    0    0    0     0 |       0       0 |      0      0
+  11:01   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:02   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:03   24   23    1    0    0    0     0 |       0       0 |      0      0
+  11:04   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:05   24   16    0    8    0    0     4 |      12       0 |      0      0
+  11:06   24   15    1    8    0    0     4 |      12       0 |      0      0
+  11:07   24   16    0    8    0    0     4 |      12       0 |      0      0
+  11:08   24   16    0    8    0    0     4 |      12       0 |      0      0
+  11:09   24   15    1    8    0    0     3 |      11       0 |      0      0
+  11:10   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:11   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:12   24   16    0    0    8    0     0 |       0       0 |      0      8
+  11:13   24   16    1    0    7    0     0 |       0       0 |      0      7
+  11:14   24   16    0    0    8    0     0 |       0       0 |      0      8
+  11:15   24   16    0    0    8    0     0 |       0       0 |      0      8
+  11:16   24   23    1    0    0    0     0 |       0       0 |      0      0
+  11:17   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:18   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:19   24   23    1    0    0    0     0 |       0       0 |      0      0
+  11:20   24   16    0    0    8    0     0 |       0       0 |      8      0
+  11:21   24   16    0    0    8    0     0 |       0       0 |      8      0
+  11:22   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:23   24   23    1    0    0    0     0 |       0       0 |      0      0
+  11:24   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:25   24   20    0    0    0    4     0 |       0       4 |      0      0
+  11:26   24   19    1    0    0    4     0 |       0       4 |      0      0
+  11:27   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:28   24   24    0    0    0    0     0 |       0       0 |      0      0
+  11:29   24   23    1    0    0    0     0 |       0       0 |      0      0
+  11:30    0    0    0    0    0    0     0 |       0       0 |      0      0
+  non-error line 68: 2026/08/20 11:30:00 [notice] 31#31: log collector rotated stream
+
+==============================================================================
+Q8. Correlated examples (same request_id in all logs)
+==============================================================================
+-- Failed 502 (connection refused): lab-000122
+  access.log line 123: 2026-08-20T11:05:02.503Z GET /health status=502 upstream=172.23.0.12:8080 upstream_status=502 request_time=0.003s
+  error.log  line 1: 2026/08/20 11:05:02 [error] 31#31: *122 connect() failed (111: Connection refused) while connecting to upstream, request_id=lab-000122, request: "GET /health HTTP/1.1", u
+-- Failed 503 (dependency): lab-000292
+  access.log line 294: 2026-08-20T11:12:09.525Z GET /ready status=503 upstream=172.23.0.12:8080 upstream_status=503 request_time=2.025s
+  app.log    line 254: 2026-08-20T11:12:09.525Z http_request {'instance_id': 'app-02', 'status': 503, 'duration_ms': 2025.0}
+  app.log    line 253: 2026-08-20T11:12:09.524Z dependency_error {'instance_id': 'app-02', 'dependency': 'redis', 'error_type': 'TimeoutError'}
+-- Failed 504 (timeout): lab-000606
+  access.log line 612: 2026-08-20T11:25:14.501Z GET /records status=504 upstream=172.23.0.12:8080 upstream_status=504 request_time=2.001s
+  error.log  line 60: 2026/08/20 11:25:14 [error] 31#31: *606 upstream timed out (110: Operation timed out) while reading response header from upstream, request_id=lab-000606, request: "GET /r
+  app.log    line 616: 2026-08-20T11:25:15.200Z http_request {'instance_id': 'app-02', 'status': 200, 'duration_ms': 2700}
+-- Retried then succeeded: lab-000124
+  access.log line 125: 2026-08-20T11:05:07.620Z GET /ready status=200 upstream=172.23.0.12:8080, 172.23.0.11:8080 upstream_status=502, 200 request_time=0.12s
+  error.log  line 2: 2026/08/20 11:05:07 [error] 31#31: *124 connect() failed (111: Connection refused) while connecting to upstream, request_id=lab-000124, request: "GET /ready HTTP/1.1", up
+  app.log    line 123: 2026-08-20T11:05:07.620Z http_request {'instance_id': 'app-01', 'status': 200, 'duration_ms': 120.0}
+-- Successful: lab-000121
+  access.log line 121: 2026-08-20T11:05:00.055Z GET / status=200 upstream=172.23.0.11:8080 upstream_status=200 request_time=0.055s
+  app.log    line 121: 2026-08-20T11:05:00.055Z http_request {'instance_id': 'app-01', 'status': 200, 'duration_ms': 55.0}
+
+==============================================================================
+Q9. Proxy/connectivity vs dependency/application failures
+==============================================================================
+  client error.log            app dependency_error   app http status  count
+  502    connection_refused   -                      no app record    40
+  503    -                    postgres               503              16
+  503    -                    redis                  503              31
+  504    upstream_timeout     -                      200              8
+  504 details (request_time vs app duration_ms):
+    lab-000606 /records request_time=2.001s upstream=172.23.0.12:8080 (app-02) app duration_ms=2700 app status=200
+    lab-000607 /records request_time=2.001s upstream=172.23.0.11:8080 (app-01) app duration_ms=2700 app status=200
+    lab-000618 /records request_time=2.001s upstream=172.23.0.12:8080 (app-02) app duration_ms=2700 app status=200
+    lab-000619 /records request_time=2.001s upstream=172.23.0.11:8080 (app-01) app duration_ms=2700 app status=200
+    lab-000630 /records request_time=2.001s upstream=172.23.0.12:8080 (app-02) app duration_ms=2700 app status=200
+    lab-000631 /records request_time=2.001s upstream=172.23.0.11:8080 (app-01) app duration_ms=2700 app status=200
+    lab-000642 /records request_time=2.001s upstream=172.23.0.12:8080 (app-02) app duration_ms=2700 app status=200
+    lab-000643 /records request_time=2.001s upstream=172.23.0.11:8080 (app-01) app duration_ms=2700 app status=200
+  retried requests also listed in error.log as connection_refused: 19/19
+
+==============================================================================
+Backend mapping used above (from single-attempt requests also in application.log)
+==============================================================================
+  172.23.0.11:8080 -> {'app-01': 360}
+  172.23.0.12:8080 -> {'app-02': 301}
+
+$ sha256sum logs/*.log   # originals unchanged (same as before the analysis)
+f8562d6ee86b7e7aa67e8c3474ca16eca8a1e5f521f78f3808d784be62efa754 *logs/access.log
+483d06cf431faa1d04a7264b015798bcde4bed1ba618f87426e79fb0d5caea05 *logs/application.log
+940588d00bafd6c5c7cad8a4d8a0c39b665d1fd64928d93a5d1f1810c3c6f175 *logs/error.log
