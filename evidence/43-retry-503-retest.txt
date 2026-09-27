@@ -1,0 +1,28 @@
+$ docker exec nginx nginx -t && docker exec nginx nginx -s reload
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+2026/09/27 20:35:02 [notice] 4456#4456: signal process started
+
+$ docker stop redis   (same test as before)
+  /counter  HTTP 503  3.566385s  redis_unavailable app-01
+  /counter  HTTP 503  3.296710s  redis_unavailable app-02
+  /counter  HTTP 503  3.492095s  redis_unavailable app-01
+  /counter  HTTP 503  3.303139s  redis_unavailable app-02
+  /health  HTTP 200  0.004005s  alive app-01
+  /health  HTTP 200  0.004115s  alive app-02
+  /health  HTTP 200  0.003691s  alive app-01
+  /health  HTTP 200  0.004387s  alive app-02
+  /ready  HTTP 503  3.377808s  not_ready app-01
+  /records  HTTP 200  0.014603s  19 records app-02
+  /health  HTTP 200  0.003881s  alive app-01
+
+$ docker logs nginx --since 1m | nginx warnings/errors
+  (end of list)
+
+$ docker start redis && python3 validate.py
+RESULT: PASS
+
+$ python3 failure_test.py   (failover for a stopped app must still work)
+  [during failure] requests=94 errors=0 error_rate=0.00% p95=0.029s max=2.027s served_by={'app-01': 94}
+  [recovery] requests=28 errors=0 error_rate=0.00% p95=0.028s max=0.028s served_by={'app-01': 27, 'app-02': 1}
+11/11 checks passed
+RESULT: PASS
