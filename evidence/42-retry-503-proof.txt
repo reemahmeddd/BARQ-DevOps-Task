@@ -1,0 +1,30 @@
+$ docker stop redis   (simulate a shared dependency outage)
+$ requests: /counter (needs redis), then /health (needs nothing)
+  /counter  HTTP 504  6.014539s  (nginx error page)
+  /counter  HTTP 504  6.010068s  (nginx error page)
+  /counter  HTTP 502  0.002987s  (nginx error page)
+  /counter  HTTP 502  0.003367s  (nginx error page)
+  /health  HTTP 502  0.003109s  (nginx error page)
+  /health  HTTP 502  0.002510s  (nginx error page)
+  /health  HTTP 502  0.001710s  (nginx error page)
+  /health  HTTP 502  0.002261s  (nginx error page)
+  /ready  HTTP 502  0.002447s  (nginx error page)
+  /health  HTTP 502  0.002824s  (nginx error page)
+
+$ docker logs nginx --since 1m | nginx warnings/errors
+      8 no live upstreams while connecting to upstream
+      2 upstream server temporarily disabled while reading response header from upstream
+      4 upstream timed out (110: Operation timed out) while reading response header from upstream
+
+$ docker start redis
+RESULT: PASS
+$ docker stop redis; time one INCR inside app-01 with the app's own settings
+  redis-py version: 8.1.0
+  default retry policy: None retries = ?
+  INCR failed after 3.3s: ConnectionError
+  same with retry=None: failed after 3.3s: ConnectionError
+$ docker start redis
+$ docker stop redis; time the DNS lookup of "redis" and the full error inside app-01
+  DNS lookup of 'redis' failed after 3.6s: [Errno -2] Name or service not known
+  INCR: 3.3s: Error -2 connecting to redis:6379. Name or service not known.
+$ docker start redis
