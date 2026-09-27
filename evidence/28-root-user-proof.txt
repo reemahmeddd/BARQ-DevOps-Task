@@ -1,0 +1,10 @@
+$ docker exec app-01 id
+uid=0(root) gid=0(root) groups=0(root)
+$ docker exec app-01 ps -o user,pid,cmd 2>/dev/null || cat /proc/1/status
+uid=0  /sbin/docker-init -- python -m app.server 
+uid=0  sh -c for p in /proc/[0-9]*; do [ -r $p/cmdline ] && printf "uid=%s  %s\n" "$(awk "/^Uid:/{print \$2}" $p/status)" "$(tr "\0" " " < $p/cmdline)"; done 
+uid=0  python -m app.server 
+
+$ grep -n "useradd\|USER" Dockerfile
+4:RUN groupadd --gid 10001 app && useradd --uid 10001 --gid app --no-create-home app
+8:USER root
