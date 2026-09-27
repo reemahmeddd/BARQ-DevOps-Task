@@ -1,0 +1,9 @@
+$ docker inspect -f "{{.Name}}: {{if .State.Health}}{{.State.Health.Status}}{{else}}NO HEALTHCHECK{{end}}" (all)
+/nginx: NO HEALTHCHECK
+/app-01: healthy
+/app-02: healthy
+/postgres: healthy
+/redis: healthy
+
+$ docker exec nginx which wget   # is a health-check tool available inside the nginx image?
+/usr/bin/wget
