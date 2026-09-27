@@ -1,0 +1,51 @@
+$ app IPs on the frontend network (before)
+  app-01 172.18.0.3
+  app-02 172.18.0.2
+
+$ docker compose up -d --force-recreate --no-deps app-02 app-01   (nginx NOT restarted)
+   Container app-02 Recreated 
+   Container app-01 Recreated 
+$ app IPs (after)
+  app-01 172.18.0.3
+  app-02 172.18.0.5
+
+$ 10 x curl /instance through nginx (nginx still has the OLD addresses)
+200 200 200 200 200 200 200 200 200 200 
+  2026/09/27 18:25:30 [error] 30#30: *67 upstream timed out (110: Operation timed out) while connecting to upstream
+  2026/09/27 18:25:32 [error] 30#30: *72 upstream timed out (110: Operation timed out) while connecting to upstream
+
+$ docker restart nginx   (restore)
+RESULT: PASS
+
+### Repeat with instance and timing (a temporary container "ip-squatter" occupies the old app-02 address so a new one is assigned)
+$ app IPs (before)
+  app-01 172.18.0.3
+  app-02 172.18.0.5
+invalid argument "invalid IP" for "--ip" flag: failed to parse IP: "invalid IP"
+
+Usage:  docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
+
+Run 'docker run --help' for more information
+$ docker compose up -d --force-recreate --no-deps app-02   (nginx NOT restarted)
+   Container app-02 Recreated 
+$ app IPs (after)
+  app-01 172.18.0.3
+  app-02 172.18.0.4
+
+$ 10 x curl /instance: status, time, answered by
+  200 0.004139s "instance_id":"app-01"
+  200 2.013331s "instance_id":"app-01"
+  200 0.004387s "instance_id":"app-01"
+  200 2.010922s "instance_id":"app-01"
+  200 0.003296s "instance_id":"app-01"
+  200 0.003975s "instance_id":"app-01"
+  200 0.012874s "instance_id":"app-01"
+  200 0.025164s "instance_id":"app-01"
+  200 0.004012s "instance_id":"app-01"
+  200 0.004858s "instance_id":"app-01"
+
+$ docker restart nginx   (re-resolves names)
+        5 "instance_id":"app-01"
+        5 "instance_id":"app-02"
+
+# NOTE: the "invalid IP" error above is from the ip-squatter helper (a stopped container has no IP to read). It was not needed: app-02 got a new address anyway (.5 -> .4).
