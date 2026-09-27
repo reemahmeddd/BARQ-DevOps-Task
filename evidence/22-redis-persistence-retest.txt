@@ -1,0 +1,33 @@
+$ docker compose config -q
+config OK
+
+$ docker compose -p barq-assessment up -d redis
+ Volume barq-assessment_redis-data Created 
+ Volume barq-assessment_redis-data Created 
+ Container redis Recreated 
+ Container redis Started 
+
+$ 3 x curl /counter
+"counter":1
+"counter":2
+"counter":3
+$ docker exec redis redis-cli CONFIG GET appendonly
+appendonly yes 
+$ docker exec redis ls -R /data
+/data:
+appendonlydir
+
+/data/appendonlydir:
+appendonly.aof.1.base.rdb
+appendonly.aof.1.incr.aof
+appendonly.aof.manifest
+
+$ docker compose -p barq-assessment up -d --force-recreate redis
+ Container redis Recreated 
+ Container redis Started 
+
+$ curl /counter   (after recreating redis)
+"counter":4
+$ docker volume ls --filter name=redis-data
+DRIVER    VOLUME NAME
+local     barq-assessment_redis-data
