@@ -1,0 +1,27 @@
+$ curl http://127.0.0.1:8080/records   (before)
+{"instance_id":"app-01","records":[{"id":1,"title":"Review service readiness"},{"id":2,"title":"Document the operating procedure"},{"id":3,"title":"first record"},{"id":4,"title":"created during failure"}],"service":"barq-api","version":"2.0.0"}
+
+
+$ docker exec postgres sh -c "echo PGDATA=\$PGDATA; df -h \$PGDATA | tail -1"   # where is the data, on what kind of disk?
+PGDATA=/var/lib/postgresql/data
+tmpfs                     3.8G     46.0M      3.8G   1% /var/lib/postgresql/data
+
+$ docker inspect postgres --format "{{range .Mounts}}{{.Type}} {{.Name}} -> {{.Destination}}{{println}}{{end}}"
+bind  -> /docker-entrypoint-initdb.d/01-init.sql
+volume barq-assessment_postgres-data -> /var/lib/postgresql/backup
+
+$ docker exec postgres ls -A /var/lib/postgresql/backup   # contents of the folder the volume is attached to
+ls: D:/Git/var/lib/postgresql/backup: No such file or directory
+(end of listing)
+
+$ docker compose -p barq-assessment up -d --force-recreate postgres
+ Container postgres Recreated 
+ Container postgres Started 
+
+$ curl http://127.0.0.1:8080/records   (after recreating postgres)
+{"instance_id":"app-02","records":[{"id":1,"title":"Review service readiness"},{"id":2,"title":"Document the operating procedure"}],"service":"barq-api","version":"2.0.0"}
+
+
+# NOTE: the "ls" above was mangled by Git Bash path conversion (D:/Git/...). Re-run with MSYS_NO_PATHCONV=1:
+$ docker exec postgres ls -A /var/lib/postgresql/backup
+(end of listing - empty: postgres never writes here)
