@@ -1,0 +1,30 @@
+$ docker compose config: depends_on per service
+  app-01    {'postgres': 'service_healthy', 'redis': 'service_healthy'}
+  app-02    {'postgres': 'service_healthy', 'redis': 'service_healthy'}
+  nginx     {'app-01': 'service_healthy', 'app-02': 'service_healthy'}
+  postgres  no dependencies
+  redis     no dependencies
+
+$ docker compose -p barq-assessment down   (volumes kept)
+$ docker compose -p barq-assessment up -d, then poll /ready every 0.5s
+   Container postgres Started 
+   Container redis Started 
+   Container postgres Healthy 
+   Container postgres Healthy 
+   Container redis Healthy 
+   Container redis Healthy 
+   Container app-02 Started 
+   Container app-01 Started 
+   Container app-02 Healthy 
+   Container app-01 Healthy 
+   Container nginx Started 
+  'up -d' returned after 9.3s
+200 
+  first 200 after 9.7s
+
+$ docker logs nginx | grep -cE "\[(error|warn)\]"   # startup errors in nginx
+0
+
+$ python3 validate.py
+41/41 checks passed
+RESULT: PASS

@@ -5,6 +5,11 @@ x-app: &app
   restart: unless-stopped
   cpus: 0.50
   mem_limit: 256m
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
   environment: &app-env
     APP_HOST: "0.0.0.0"
     APP_PORT: "8080"
@@ -78,7 +83,11 @@ services:
     mem_limit: 128m
     ports: ["127.0.0.1:${PUBLIC_PORT:-8080}:80"]
     volumes: ["./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"]
-    depends_on: [app-01, app-02]
+    depends_on:
+      app-01:
+        condition: service_healthy
+      app-02:
+        condition: service_healthy
     networks: [frontend]
 networks:
   frontend:
