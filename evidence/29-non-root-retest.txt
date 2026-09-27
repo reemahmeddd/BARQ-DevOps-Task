@@ -1,0 +1,24 @@
+$ docker compose -p barq-assessment up -d --build app-01 app-02 && docker restart nginx
+ Image barq-assessment-app-02 Built 
+ Image barq-assessment-app-01 Built 
+ Container app-02 Recreated 
+ Container app-01 Recreated 
+
+$ docker exec app-01 id
+uid=10001(app) gid=10001(app) groups=10001(app)
+$ docker exec app-02 id
+uid=10001(app) gid=10001(app) groups=10001(app)
+
+NAME       STATUS
+app-01     Up 24 seconds (healthy)
+app-02     Up 24 seconds (healthy)
+nginx      Up 3 seconds
+postgres   Up 17 minutes (healthy)
+redis      Up 20 minutes (healthy)
+
+{"dependencies":{"postgres":"ready","redis":"ready"},"instance_id":"app-01","service":"barq-api","status":"ready","version":"2.0.0"}
+  [HTTP 200]
+{"counter":5,"instance_id":"app-02","service":"barq-api","version":"2.0.0"}
+  [HTTP 200]
+{"instance_id":"app-01","record":{"id":4,"title":"non-root test"},"service":"barq-api","version":"2.0.0"}
+  [HTTP 201]
