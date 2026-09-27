@@ -1,0 +1,23 @@
+$ docker compose -p barq-assessment up -d postgres   (apply the new volume mount)
+ Container postgres Recreated 
+ Container postgres Started 
+
+$ docker exec postgres df -h /var/lib/postgresql/data | tail -1   # no longer tmpfs?
+/dev/sde               1006.9G      2.3G    953.3G   0% /etc/hostname
+
+$ curl -X POST /records {"title":"persistence test"}
+{"instance_id":"app-01","record":{"id":3,"title":"persistence test"},"service":"barq-api","version":"2.0.0"}
+  [HTTP 201]
+
+$ docker compose -p barq-assessment up -d --force-recreate postgres app-01 app-02 && docker restart nginx
+ Container app-02 Recreated 
+ Container postgres Recreated 
+ Container app-01 Recreated 
+
+$ docker volume ls --filter name=postgres-data
+DRIVER    VOLUME NAME
+local     barq-assessment_postgres-data
+
+$ curl http://127.0.0.1:8080/records   (after recreating postgres + both apps)
+{"instance_id":"app-01","records":[{"id":1,"title":"Review service readiness"},{"id":2,"title":"Document the operating procedure"},{"id":3,"title":"persistence test"}],"service":"barq-api","version":"2.0.0"}
+  [HTTP 200]
