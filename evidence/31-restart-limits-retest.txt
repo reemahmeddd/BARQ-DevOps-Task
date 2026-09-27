@@ -1,0 +1,43 @@
+$ docker compose -p barq-assessment up -d && docker restart nginx
+ Container app-02 Recreated 
+ Container app-01 Recreated 
+ Container redis Recreated 
+ Container postgres Recreated 
+ Container nginx Recreated 
+ Container redis Started 
+ Container app-01 Started 
+ Container app-02 Started 
+ Container postgres Started 
+ Container nginx Started 
+
+$ docker inspect -f "... restart / memory / cpus" (all)
+/app-01 restart=unless-stopped memory=268435456 nanocpus=500000000
+/app-02 restart=unless-stopped memory=268435456 nanocpus=500000000
+/nginx restart=unless-stopped memory=134217728 nanocpus=500000000
+/postgres restart=unless-stopped memory=536870912 nanocpus=1000000000
+/redis restart=unless-stopped memory=134217728 nanocpus=500000000
+
+$ docker exec app-02 python -c "kill -9 the app.server process"   # simulate a crash again
+  killed pid 1
+  killed pid 7
+  after ~2s: Up 2 seconds (health: starting)
+  after ~5s: Up 4 seconds (healthy)
+  after ~10s: Up 9 seconds (healthy)
+  after ~20s: Up 19 seconds (healthy)
+
+$ docker inspect -f "{{.RestartCount}}" app-02
+RestartCount=1
+
+$ docker stop app-02   # a deliberate stop must NOT be undone
+  10s after docker stop: Exited (143) 10 seconds ago
+$ docker start app-02
+NAME       STATUS
+app-01     Up About a minute (healthy)
+app-02     Up 15 seconds (healthy)
+nginx      Up 50 seconds
+postgres   Up About a minute (healthy)
+redis      Up About a minute (healthy)
+
+$ 10 x /instance
+      5 "instance_id":"app-01"
+      5 "instance_id":"app-02"
