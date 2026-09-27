@@ -56,7 +56,7 @@ services:
     container_name: app-02
     environment:
       <<: *app-env
-      INSTANCE_ID: "app-01"
+      INSTANCE_ID: "app-02"
   nginx:
     image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
     container_name: nginx

@@ -1,0 +1,11 @@
+$ docker compose -p barq-assessment up -d app-02 && docker restart nginx
+ Container app-02 Recreated 
+ Container app-02 Started 
+
+$ docker exec nginx wget -qO- http://app-02:8080/instance   # direct
+{"instance_id":"app-02","service":"barq-api","status":"ok","version":"2.0.0"}
+
+
+$ 20 x curl http://127.0.0.1:8080/instance | count by instance_id
+     16 "instance_id":"app-01"
+      4 "instance_id":"app-02"
