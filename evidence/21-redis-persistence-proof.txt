@@ -1,0 +1,16 @@
+$ 3 x curl /counter
+"counter":1
+"counter":2
+"counter":3
+
+$ grep -n "redis-server" docker-compose.yml
+38:    command: ["redis-server", "--save", "", "--appendonly", "no"]
+$ docker inspect redis --format "mounts: {{len .Mounts}}"
+mounts: 1
+
+$ docker compose -p barq-assessment up -d --force-recreate redis
+ Container redis Recreated 
+ Container redis Started 
+
+$ curl /counter   (after recreating redis)
+"counter":1
