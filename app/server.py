@@ -5,6 +5,7 @@ import re
 import time
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 import psycopg
 import redis
 from flask import Flask, g, jsonify, request
@@ -15,6 +16,10 @@ VERSION = "2.0.0"
 def log_event(level, event, **fields):
     print(json.dumps({"timestamp": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
                       "level": level, "service": "barq-api", "event": event, **fields}), flush=True)
+
+def redact_url(url):
+    password = urlsplit(url).password
+    return url.replace(password, "***") if password else url
 
 class Dependencies:
     def __init__(self, database_url, redis_url):
@@ -139,7 +144,7 @@ def create_app(config=None, dependencies=None):
     return app
 
 if __name__ == "__main__":
-    log_event("INFO", "configuration_loaded", database_url=os.getenv("DATABASE_URL", ""),
-              redis_url=os.getenv("REDIS_URL", ""))
+    log_event("INFO", "configuration_loaded", database_url=redact_url(os.getenv("DATABASE_URL", "")),
+              redis_url=redact_url(os.getenv("REDIS_URL", "")))
     create_app().run(host=os.getenv("APP_HOST", "0.0.0.0"),
                      port=int(os.getenv("APP_PORT", "8080")), threaded=True, debug=False)

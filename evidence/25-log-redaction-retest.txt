@@ -1,0 +1,31 @@
+$ docker compose -p barq-assessment up -d --build app-01 app-02 && docker restart nginx
+ Image barq-assessment-app-01 Built 
+ Image barq-assessment-app-02 Built 
+ Container app-01 Recreated 
+ Container app-02 Recreated 
+
+$ docker logs app-01 2>&1 | grep configuration_loaded
+{"timestamp": "2026-09-27T13:18:39.903+00:00", "level": "INFO", "service": "barq-api", "event": "configuration_loaded", "database_url": "postgresql://barq_app:***@postgres:5432/barq_tasks", "redis_url": "redis://redis:6379/0"}
+$ docker logs app-01 2>&1 | grep -c BarqLabOnly   # password occurrences in the log
+0
+
+$ curl /ready
+{"dependencies":{"postgres":"ready","redis":"ready"},"instance_id":"app-01","service":"barq-api","status":"ready","version":"2.0.0"}
+  [HTTP 200]
+
+$ docker run --rm -v ./tests:/srv/tests barq-assessment-app-01 python -m unittest discover -s tests -v   # BARQ app tests
+{"timestamp": "2026-09-27T13:18:59.862+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "test-instance", "request_id": "0a289e44f84f4421853fa7a602dd79e6", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 0.119}
+{"timestamp": "2026-09-27T13:18:59.863+00:00", "level": "ERROR", "service": "barq-api", "event": "dependency_error", "dependency": "redis", "error_type": "ConnectionError", "request_id": "861728fda2f347d7b6f66de1348374d4", "instance_id": "test-instance"}
+{"timestamp": "2026-09-27T13:18:59.863+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "test-instance", "request_id": "861728fda2f347d7b6f66de1348374d4", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 0.128}
+ok
+test_root_identity_and_headers (test_app.ContractTests.test_root_identity_and_headers) ... {"timestamp": "2026-09-27T13:18:59.867+00:00", "level": "INFO", "service": "barq-api", "event": "http_request", "instance_id": "test-instance", "request_id": "test-123", "method": "GET", "path": "/", "status": 200, "duration_ms": 0.074}
+{"timestamp": "2026-09-27T13:18:59.868+00:00", "level": "INFO", "service": "barq-api", "event": "http_request", "instance_id": "test-instance", "request_id": "test-123", "method": "GET", "path": "/instance", "status": 200, "duration_ms": 0.12}
+ok
+test_unknown_and_head (test_app.ContractTests.test_unknown_and_head) ... {"timestamp": "2026-09-27T13:18:59.873+00:00", "level": "WARN", "service": "barq-api", "event": "http_request", "instance_id": "test-instance", "request_id": "35184b048de24fb692e181430bc04369", "method": "GET", "path": "/missing", "status": 404, "duration_ms": 0.103}
+{"timestamp": "2026-09-27T13:18:59.873+00:00", "level": "INFO", "service": "barq-api", "event": "http_request", "instance_id": "test-instance", "request_id": "c618efed3a9f4ba29deb5e8e524eaa28", "method": "HEAD", "path": "/health", "status": 200, "duration_ms": 0.063}
+ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.100s
+
+OK
