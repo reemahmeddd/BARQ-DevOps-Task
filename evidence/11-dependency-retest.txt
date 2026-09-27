@@ -1,0 +1,30 @@
+$ docker compose -p barq-assessment up -d --force-recreate app-01 app-02 && docker restart nginx
+ Container app-02 Recreated 
+ Container app-01 Recreated 
+ Container app-02 Started 
+ Container app-01 Started 
+
+$ curl http://127.0.0.1:8080/ready
+{"dependencies":{"postgres":"ready","redis":"ready"},"instance_id":"app-01","service":"barq-api","status":"ready","version":"2.0.0"}
+  [HTTP 200]
+
+$ curl -X POST -H Content-Type: application/json -d {"title":"first record"} http://127.0.0.1:8080/records
+{"instance_id":"app-01","record":{"id":3,"title":"first record"},"service":"barq-api","version":"2.0.0"}
+  [HTTP 201]
+
+$ curl http://127.0.0.1:8080/records
+{"instance_id":"app-01","records":[{"id":1,"title":"Review service readiness"},{"id":2,"title":"Document the operating procedure"},{"id":3,"title":"first record"}],"service":"barq-api","version":"2.0.0"}
+  [HTTP 200]
+
+$ curl http://127.0.0.1:8080/counter
+{"counter":1,"instance_id":"app-01","service":"barq-api","version":"2.0.0"}
+  [HTTP 200]
+
+$ curl http://127.0.0.1:8080/counter
+{"counter":2,"instance_id":"app-01","service":"barq-api","version":"2.0.0"}
+  [HTTP 200]
+
+$ curl -X POST -H Content-Type: application/json -d {"title":""} http://127.0.0.1:8080/records
+{"error":"title_must_be_1_to_200_characters","instance_id":"app-01","service":"barq-api","version":"2.0.0"}
+  [HTTP 400]
+
