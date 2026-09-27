@@ -1,0 +1,67 @@
+$ python3 validate.py   (healthy stack)
+41/41 checks passed
+RESULT: PASS
+exit code: 0
+
+### Negative test 1: stop app-02
+$ docker stop app-02 && python3 validate.py --timeout 10
+FAIL  stack becomes ready within the time limit  (gave up after 10s: /ready=200, not healthy/running=['app-02'])
+FAIL  container app-02 is running  (health: unhealthy)
+FAIL  app-02 runs as a non-root user  (uid )
+FAIL  every app instance answers through NGINX  (seen {'app-01': 12}, expected ['app-01', 'app-02'])
+37/41 checks passed
+RESULT: FAIL (4 failed)
+exit code: 1
+
+### Negative test 2: wrong public port
+$ python3 validate.py --url http://127.0.0.1:8090 --timeout 10
+FAIL  stack becomes ready within the time limit  (gave up after 10s: /ready=0, not healthy/running=no containers)
+FAIL  GET / returns 200 with message and instance_id  (HTTP 0)
+FAIL  responses include a request ID header  (missing)
+FAIL  GET /health returns 200  (HTTP 0)
+FAIL  GET /ready returns 200  (HTTP 0)
+FAIL  PostgreSQL is ready  (postgres: None)
+FAIL  Redis is ready  (redis: None)
+FAIL  POST /records creates a record (201)  (HTTP 0)
+exit code: 1
+
+### Negative test 3: nginx attached to the backend network
+$ docker network connect barq-assessment_backend nginx && python3 validate.py --timeout 10
+FAIL  nginx is only on ['frontend']  (on ['barq-assessment_backend', 'barq-assessment_frontend'])
+FAIL  nginx cannot reach postgres:5432  (no answer)
+FAIL  nginx cannot reach redis:6379  (no answer)
+38/41 checks passed
+RESULT: FAIL (3 failed)
+exit code: 1
+
+### Restored
+$ python3 validate.py
+41/41 checks passed
+RESULT: PASS
+exit code: 0
+
+# NOTE: the "no containers" wording in negative test 2 was misleading (containers were healthy, only the URL was wrong). Fixed; re-run:
+$ python3 validate.py --url http://127.0.0.1:8090 --timeout 10
+Validating http://127.0.0.1:8090 (compose project barq-assessment)
+Traceback (most recent call last):
+  File "D:\BARQ-DevOps-Task\validate.py", line 191, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "D:\BARQ-DevOps-Task\validate.py", line 108, in main
+    check(f"container {name} exists with that name", c is not None and c["Name"] == f"/{name}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\BARQ-DevOps-Task\validate.py", line 23, in check
+    print(f"{'PASS' if ok else 'FAIL'}  {name}" + (f"  ({detail})" if detail else ""), flush=True)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 22] Invalid argument
+Exception ignored on flushing sys.stdout:
+OSError: [Errno 22] Invalid argument
+$ python3 validate.py
+41/41 checks passed
+RESULT: PASS
+exit code: 0
+# NOTE: the traceback above came from "| head -1" closing the pipe early (Windows reports EPIPE as OSError 22), not from validate.py. Re-run without head:
+$ python3 validate.py --url http://127.0.0.1:8090 --timeout 10 > out.txt; grep "time limit\|RESULT" out.txt
+FAIL  stack becomes ready within the time limit  (gave up after 10s: /ready=0, all containers healthy)
+RESULT: FAIL (15 failed)
+exit code: 1
