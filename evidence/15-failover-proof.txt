@@ -1,0 +1,22 @@
+$ docker stop app-02
+app-02
+
+$ 10 x curl http://127.0.0.1:8080/instance   (status, time, answer)
+ 1: HTTP 200  0.004435s  "instance_id":"app-01"
+ 2: HTTP 504  2.005953s  (error page)
+ 3: HTTP 200  0.003794s  "instance_id":"app-01"
+ 4: HTTP 504  2.004860s  (error page)
+ 5: HTTP 200  0.022895s  "instance_id":"app-01"
+ 6: HTTP 504  2.005112s  (error page)
+ 7: HTTP 200  0.005291s  "instance_id":"app-01"
+ 8: HTTP 504  2.007630s  (error page)
+ 9: HTTP 200  0.004485s  "instance_id":"app-01"
+10: HTTP 504  2.004835s  (error page)
+
+$ docker logs nginx 2>&1 | grep error | tail -3
+2026/09/27 11:45:21 [error] 22#22: *51 upstream timed out (110: Operation timed out) while connecting to upstream, client: 172.19.0.1, server: _, request: "GET /instance HTTP/1.1", upstream: "http://1
+2026/09/27 11:45:23 [error] 22#22: *55 upstream timed out (110: Operation timed out) while connecting to upstream, client: 172.19.0.1, server: _, request: "GET /instance HTTP/1.1", upstream: "http://1
+2026/09/27 11:45:25 [error] 23#23: *59 upstream timed out (110: Operation timed out) while connecting to upstream, client: 172.19.0.1, server: _, request: "GET /instance HTTP/1.1", upstream: "http://1
+
+$ docker start app-02
+app-02
