@@ -1,0 +1,35 @@
+$ docker restart nginx   (load the new config once)
+  app-02 IP before: 172.18.0.4
+$ docker stop app-02; docker run --network ..._frontend (temporary container takes the freed address); docker compose up -d --force-recreate --no-deps app-02
+  temporary container got: 172.18.0.4
+   Container app-02 Recreated 
+  app-02 IP after: 172.18.0.5
+
+$ 20 x curl /instance, nginx NOT restarted: status, time, answered by
+  200 0.004900s "instance_id":"app-01"
+  200 0.004658s "instance_id":"app-02"
+  200 0.004386s "instance_id":"app-01"
+  200 0.004196s "instance_id":"app-02"
+  200 0.003864s "instance_id":"app-01"
+  200 0.024544s "instance_id":"app-02"
+  200 0.004467s "instance_id":"app-01"
+  200 0.003773s "instance_id":"app-02"
+  200 0.004286s "instance_id":"app-01"
+  200 0.003459s "instance_id":"app-02"
+  200 0.003926s "instance_id":"app-01"
+  200 0.004564s "instance_id":"app-02"
+  200 0.003372s "instance_id":"app-01"
+  200 0.004336s "instance_id":"app-02"
+  200 0.003693s "instance_id":"app-01"
+  200 0.003777s "instance_id":"app-02"
+  200 0.005282s "instance_id":"app-01"
+  200 0.003810s "instance_id":"app-02"
+  200 0.003153s "instance_id":"app-01"
+  200 0.004414s "instance_id":"app-02"
+  summary:
+        10 app-01
+        10 app-02
+
+$ python3 validate.py
+41/41 checks passed
+RESULT: PASS
