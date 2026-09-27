@@ -1,0 +1,16 @@
+$ grep -n "restart\|deploy\|mem_limit\|cpus" docker-compose.yml
+5:  restart: "no"
+
+$ docker inspect -f "{{.Name}} restart={{.HostConfig.RestartPolicy.Name}} memory={{.HostConfig.Memory}} nanocpus={{.HostConfig.NanoCpus}}" (all)
+/app-01 restart=no memory=0 nanocpus=0
+/app-02 restart=no memory=0 nanocpus=0
+/nginx restart=no memory=0 nanocpus=0
+/postgres restart=no memory=0 nanocpus=0
+/redis restart=no memory=0 nanocpus=0
+
+$ docker exec app-02 python -c "kill -9 the app.server process"   # simulate a crash
+  killed pid 1
+  killed pid 7
+
+$ docker ps -a --filter name=app-02 --format "{{.Names}}: {{.Status}}"   # 20 seconds later
+app-02: Exited (137) 20 seconds ago
