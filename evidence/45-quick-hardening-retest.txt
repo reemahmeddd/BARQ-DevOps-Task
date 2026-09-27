@@ -1,0 +1,13 @@
+$ docker compose up -d   (logging changed -> containers recreated, volumes kept)
+  recreated: 5
+$ curl -sI http://127.0.0.1:8080/health | grep -i ^server
+Server: nginx
+$ docker inspect ... LogConfig (all)
+  /nginx json-file map[max-file:3 max-size:10m]
+  /app-01 json-file map[max-file:3 max-size:10m]
+  /app-02 json-file map[max-file:3 max-size:10m]
+  /postgres json-file map[max-file:3 max-size:10m]
+  /redis json-file map[max-file:3 max-size:10m]
+$ python3 validate.py
+41/41 checks passed
+RESULT: PASS
