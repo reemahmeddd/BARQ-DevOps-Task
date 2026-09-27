@@ -213,6 +213,18 @@ Commands were run from the repository root with the Compose project `barq-assess
 - Related commit: 28aabd5 (proof), b6b943f (fix)
 - Remaining uncertainty: nginx can use an old address for up to 5 seconds (`valid=5s`).
 
+## Entry 18 / 2026-09-27 23:13 to 23:37 / A Redis outage took down the whole site
+- Symptom: While writing `decisions.md` I questioned `http_503` in `proxy_next_upstream`. The apps answer 503 when Redis or Postgres is down, and both apps share them, so retrying on the other app cannot help.
+- Hypothesis: nginx counts the apps' 503 answers as server failures, marks both apps down, and then even `/health` fails.
+- Command or test: `docker stop redis`, then requests to `/counter`, `/health` and `/ready`, and the nginx error log. Then, inside app-01, I timed one Redis command and a DNS lookup of `redis` with a small Python script.
+- Actual output: `/counter` took 6 s and returned 504, then every request returned 502, including `/health`, which does not use Redis. The nginx log had 4 "upstream timed out", 2 "upstream server temporarily disabled" and 8 "no live upstreams". Inside the app, one Redis command failed after 3.3 s, and the DNS lookup of the stopped `redis` container failed after 3.6 s ("Name or service not known").
+- Failed attempt and what changed your thinking: My hypothesis was only half right. The requests did not even get a 503: the app was slower than nginx's 3 s read timeout. My next guess was that redis-py retries failed commands, but its retry policy was `None` and the call took 3.3 s even with `retry=None`. The timing test showed the real cause: the DNS lookup of a stopped container takes about 3.6 s, and the app's 2 s Redis timeouts do not include DNS.
+- Root cause: `proxy_read_timeout 3s` was shorter than the app's worst failure time, and `proxy_next_upstream` counted timeouts and the apps' own 503 answers as server failures. With `max_fails=2` both apps were disabled, so a partial outage became a full outage.
+- Fix: `proxy_read_timeout 10s` and `proxy_next_upstream error timeout;`. Only an unreachable or unresponsive app is retried and counted as failed. The apps' 503 answers go to the client. `proxy_connect_timeout` stays 2 s, so a stopped app is still skipped quickly. I applied it with `nginx -s reload`.
+- Retest evidence: With Redis stopped, `/counter` returned the app's `503 redis_unavailable` in 3.3 to 3.6 s from both apps, `/health` returned 200, `/records` returned 200, and nginx logged no errors. After starting Redis, `validate.py` 41/41, and `failure_test.py` 11/11 (0 errors while app-02 was stopped). Files: `42-retry-503-proof.txt`, `43-retry-503-retest.txt`.
+- Related commit: 6ecc50a (proof), 8ccc646 (fix)
+- Remaining uncertainty: A really frozen app now takes up to 10 s before nginx gives up. The slow DNS lookup is still there. The app could fail faster, but I did not change the app's dependency handling.
+
 ## Open points (not fixed yet)
 - The app runs with the Flask development server. `gunicorn` is in `requirements.txt` but not used.
 
