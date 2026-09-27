@@ -177,8 +177,43 @@ Commands were run from the repository root with the Compose project `barq-assess
 - Related commit: fa7cf77 (proof), b8e3381 (fix)
 - Remaining uncertainty: The limit values are my estimates and were not tested under real load.
 
+## Entry 15 / 2026-09-27 20:26 to 21:00 / NGINX has no health check
+- Symptom: `docker inspect` showed a health status for app-01, app-02, postgres and redis, but none for nginx.
+- Hypothesis: The nginx service in `docker-compose.yml` has no `healthcheck`. The task asks to use a health-check tool that is already in the image.
+- Command or test: `docker inspect -f '{{if .State.Health}}...{{end}}'` for all containers, and `docker exec nginx which wget`.
+- Actual output: nginx `NO HEALTHCHECK`, the others healthy. `wget` exists in the nginx image (`/usr/bin/wget`).
+- Failed attempt and what changed your thinking: My first compose edit had the lines under `healthcheck:` at the same indentation, and `docker compose config -q` failed with "services.nginx.healthcheck must be a mapping". I indented them and checked again before starting anything.
+- Root cause: No health check was defined for nginx.
+- Fix: nginx answers `/nginx-health` itself on a separate server that only listens on `127.0.0.1:8081` inside the container, and compose checks it with `wget` every 10 seconds. I chose to check only the nginx process, not the apps behind it, so nginx is not marked unhealthy when an app is down. The whole stack is checked by `validate.py`.
+- Retest evidence: nginx is healthy (health checks exit 0). The page answers `ok` inside the container, cannot be reached from the host on 8081, and through the public port it goes to the app (404). `validate.py` 41/41. Files: `36-nginx-healthcheck-proof.txt`, `37-nginx-healthcheck-retest.txt`.
+- Related commit: c33cf83 (proof), aede8a3 (fix)
+- Remaining uncertainty: The check proves nginx can answer HTTP, not that it can reach the apps.
+
+## Entry 16 / 2026-09-27 21:05 to 21:24 / Services start before their dependencies are ready
+- Symptom: The apps had no `depends_on`, and nginx only waited for the apps to be started, not healthy.
+- Hypothesis: After a full restart, nginx gets traffic before the apps can answer, so there are errors at startup.
+- Command or test: `docker compose config --format json` to list the dependencies, then `docker compose down` (volumes kept) and `docker compose up -d` while polling `/ready` every 0.5 seconds, and the nginx error log.
+- Actual output: `up -d` returned after 1.8 s, but `/ready` returned 502 nineteen times, and the first 200 came after 13.1 s. The nginx log had 4 "connection refused", 2 "upstream server temporarily disabled" and 17 "no live upstreams".
+- Failed attempt and what changed your thinking: I expected a short error window of a second or two, because the apps start quickly. The log showed the real reason for the 11 seconds: nginx started at 18:01:48.8, the apps were not listening yet (app-01 at 18:01:50.0), and after 2 refused connections my failover setting `max_fails=2 fail_timeout=10s` disabled both apps for 10 seconds. So a setting that helps when one app dies made startup worse.
+- Root cause: Missing startup conditions in `docker-compose.yml`.
+- Fix: The apps depend on postgres and redis with `condition: service_healthy`, and nginx depends on app-01 and app-02 with `condition: service_healthy`.
+- Retest evidence: After `down` and `up -d`, compose starts postgres and redis, waits until they are healthy, then the apps, waits again, then nginx. `up -d` returned after 9.3 s and the first request already returned 200. 0 errors or warnings in the nginx log. `validate.py` 41/41. Files: `38-startup-order-proof.txt`, `39-startup-order-retest.txt`.
+- Related commit: 0601eba (proof), 347068f (fix)
+- Remaining uncertainty: When I add a new app instance, it also has to be added to the nginx `depends_on` list.
+
+## Entry 17 / 2026-09-27 21:28 to 21:35 / NGINX keeps old app addresses
+- Symptom: Earlier I had to restart nginx after recreating the apps. In `07-nginx-502-logs.txt` nginx sent app-01's traffic to `172.19.0.2`, which at that moment was app-02's address, because the apps had been recreated.
+- Hypothesis: nginx looks up `app-01` and `app-02` only once, when it starts. A recreated app can get a new IP address, and nginx keeps using the old one.
+- Command or test: I recreated app-02 without restarting nginx, so that it got a new address, then sent 10 requests to `/instance` and recorded the status, time and instance for each.
+- Actual output: app-02 moved from 172.18.0.5 to 172.18.0.4. All 10 requests returned 200, but all were answered by app-01, two of them took about 2.0 s, and nginx logged "upstream timed out". After `docker restart nginx` the split was 5/5 again.
+- Failed attempt and what changed your thinking: My first try did not record which instance answered, so it only showed 10 × 200 and the problem was hidden. I repeated it with the instance and the time for each request. A helper step to force a new address failed ("invalid IP") but was not needed, and I left the error in the evidence file with a note.
+- Root cause: nginx resolved the upstream names only at startup.
+- Fix: Added `resolver 127.0.0.11 valid=5s ipv6=off;` (Docker's internal DNS) and the `resolve` parameter on both upstream servers. This needs the shared `zone` from Entry 7 and nginx 1.27.3 or newer (the image is 1.28).
+- Retest evidence: After one restart to load the config, app-02 was recreated onto a new address (172.18.0.4 to 172.18.0.5) without restarting nginx: 20/20 requests returned 200, split 10/10, all under 25 ms. `validate.py` 41/41. I also checked that `nginx -t` passes in a container where `app-01` and `app-02` do not exist, which the CI syntax check relies on. Files: `40-nginx-dns-proof.txt`, `41-nginx-dns-retest.txt`.
+- Related commit: 28aabd5 (proof), b6b943f (fix)
+- Remaining uncertainty: nginx can use an old address for up to 5 seconds (`valid=5s`).
+
 ## Open points (not fixed yet)
-- NGINX looks up the app names only when it starts. After recreating the apps I restarted NGINX so it used the new addresses.
 - The app runs with the Flask development server. `gunicorn` is in `requirements.txt` but not used.
 
 Do not fabricate a failed attempt just to fill the template. Record actual attempts.
