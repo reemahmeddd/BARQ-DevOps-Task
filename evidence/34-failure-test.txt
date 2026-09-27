@@ -1,0 +1,42 @@
+$ python3 failure_test.py
+Failure test on http://127.0.0.1:8080: target=app-02, remaining=['app-01'], down for 15s
+
+Phase 1: baseline (5s)
+  [baseline] requests=43 errors=0 error_rate=0.00% p95=0.027s max=0.039s served_by={'app-01': 22, 'app-02': 21}
+PASS  baseline: no errors  (0.00%)
+PASS  baseline: every app serves  ({'app-01': 22, 'app-02': 21})
+
+Phase 2: docker stop app-02, traffic for 15s
+PASS  app-02 stopped  (exited unhealthy, took 0.5s)
+  [during failure] requests=92 errors=0 error_rate=0.00% p95=0.044s max=2.028s served_by={'app-01': 92}
+PASS  service stays available (error rate <= 1%)  (0.00%)
+PASS  stopped app-02 serves nothing  ({'app-01': 92})
+PASS  remaining apps keep serving  ({'app-01': 92})
+
+Phase 3: docker start app-02, wait until healthy and serving again
+PASS  app-02 healthy again within 60s  (running healthy after 4.3s)
+  [recovery] requests=53 errors=0 error_rate=0.00% p95=0.027s max=0.057s served_by={'app-01': 52, 'app-02': 1}
+PASS  app-02 serves requests again through nginx  (first answer 10.7s after start)
+PASS  no errors while recovering  (0.00%)
+
+Phase 4: after recovery (5s)
+  [after] requests=43 errors=0 error_rate=0.00% p95=0.026s max=0.034s served_by={'app-01': 22, 'app-02': 21}
+PASS  after: no errors  (0.00%)
+PASS  after: every app serves  ({'app-01': 22, 'app-02': 21})
+
+11/11 checks passed
+RESULT: PASS
+exit code: 0
+
+### Safety refusals
+$ python3 failure_test.py --target postgres
+REFUSED: postgres is not a running app container of project barq-assessment (['app-01', 'app-02'])
+exit code: 2
+$ python3 failure_test.py --target app-01 --project some-other-project
+REFUSED: app-01 is not a running app container of project some-other-project ([])
+exit code: 2
+$ docker stop app-02 && python3 failure_test.py --target app-01   # app-01 would be the last app
+REFUSED: app-01 is the only running app; stopping it would take the service down
+exit code: 2
+$ docker start app-02 && python3 validate.py
+RESULT: PASS
