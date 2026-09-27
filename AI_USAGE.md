@@ -42,10 +42,18 @@ This file is updated as the work continues.
 
 ## 5. Documentation
 - Tool/model: Claude Code (Claude Opus 5.5)
-- Purpose: Claude prepared a private facts sheet from the investigation and drafted `troubleshooting.md` from it, following the BARQ template. Claude also drafted this file (`AI_USAGE.md`).
-- Files or decisions affected: `troubleshooting.md`, `AI_USAGE.md`
-- What you changed or rejected: I reviewed both files and edited the wording where needed.
+- Purpose: Claude prepared a private facts sheet from the investigation and drafted `troubleshooting.md` from it, following the BARQ template. Claude also drafted this file (`AI_USAGE.md`) and `log_analysis.md`
+- Files or decisions affected: `troubleshooting.md`, `AI_USAGE.md`,`log_analysis.md`
+- What you changed or rejected: I reviewed both files and edited the files where needed to add my personal sayings.
 - How you independently verified it: I checked each entry against the evidence files and the commit hashes in `git log`.
 - Related commit: (added when committed)
+
+## 6. Log analysis
+- Tool/model: Claude Code (Claude Opus 5.5)
+- Purpose: Claude helped with the code of  `scripts/analyze_logs.py`, which reads the three logs read-only and answers the log_analysis.md questions, and drafted `log_analysis.md` from the script output.
+- Files or decisions affected: `scripts/analyze_logs.py`, `evidence/32-log-analysis-output.txt`, `log_analysis.md`. Decision to count one client request per unique request_id in access.log, so retries and duplicates are not counted twice.
+- What you changed or rejected: I reviewed the draft and edited the file, Three details in the first draft were wrong (the paths and times of the Redis and Postgres windows, and the Postgres latency); they were corrected after checking them against the logs.
+- How you independently verified it: The numbers are consistent across the three logs (for example 59 "connection refused" lines = 40 failed + 19 retried requests), the original logs have the same sha256 checksums before and after the analysis, and the examples in log_analysis.md can be found by request_id in the log files.
+- Related commit: 5872b98 (script and output), log_analysis.md commit (added when committed)
 
 You may use AI and external resources. You must understand and demonstrate the work.
