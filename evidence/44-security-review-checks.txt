@@ -1,0 +1,29 @@
+### A. Is the app database user a PostgreSQL superuser?
+$ docker exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB -c "\du"
+                             List of roles
+ Role name |                         Attributes                         
+-----------+------------------------------------------------------------
+ barq_app  | Superuser, Create role, Create DB, Replication, Bypass RLS
+
+### B. Does nginx reveal its version?
+$ curl -sI http://127.0.0.1:8080/health | grep -i ^server
+Server: nginx/1.28.3
+
+### C. Container log settings (can logs fill the disk?)
+$ docker inspect -f "{{.Name}} {{.HostConfig.LogConfig.Type}} {{.HostConfig.LogConfig.Config}}" (all)
+/nginx json-file map[]
+/app-01 json-file map[]
+/app-02 json-file map[]
+/postgres json-file map[]
+/redis json-file map[]
+
+### D. Does redis require a password?
+$ docker exec app-01 python -c "redis ping without password"
+  PING without password -> True
+
+### E. Extra container hardening options set?
+$ docker inspect -f "{{.Name}} readonly={{.HostConfig.ReadonlyRootfs}} capdrop={{.HostConfig.CapDrop}} secopt={{.HostConfig.SecurityOpt}}" (all)
+/nginx readonly=false capdrop=[] secopt=[]
+/app-01 readonly=false capdrop=[] secopt=[]
+/postgres readonly=false capdrop=[] secopt=[]
+/redis readonly=false capdrop=[] secopt=[]
