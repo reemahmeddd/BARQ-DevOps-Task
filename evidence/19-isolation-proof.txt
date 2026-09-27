@@ -1,0 +1,26 @@
+$ docker ps --format "{{.Names}}: {{.Ports}}"   # what is published to the host?
+app-01: 8080/tcp
+app-02: 8080/tcp
+nginx: 127.0.0.1:8080->80/tcp
+postgres: 5432/tcp
+redis: 6379/tcp
+
+$ python -c "..."   # from the laptop: can we reach postgres:15432 and talk to redis on 16379?
+  host -> postgres 127.0.0.1:15432: closed (TimeoutError)
+  host -> redis 127.0.0.1:16379: closed (TimeoutError)
+
+$ docker inspect nginx --format "{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}"   # which networks is nginx on?
+barq-assessment_backend barq-assessment_frontend 
+
+$ docker exec nginx sh -c "nc -z -w2 postgres 5432 && echo OPEN"
+  nginx -> postgres:5432: OPEN
+$ docker exec nginx sh -c "printf \"PING\r\n\" | nc -w2 redis 6379"
+  nginx -> redis answered: +PONG
+$ sed -n "/^networks:/,/^volumes:/p" docker-compose.yml
+networks:
+  frontend:
+  backend:
+    internal: true
+volumes:
+$ docker network inspect barq-assessment_backend --format "internal={{.Internal}}"
+internal=true
