@@ -77,6 +77,12 @@ services:
     environment:
       <<: *app-env
       INSTANCE_ID: "app-02"
+  app-03:
+    <<: *app
+    container_name: app-03
+    environment:
+      <<: *app-env
+      INSTANCE_ID: "app-03"
   nginx:
     image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
     container_name: nginx
@@ -96,6 +102,8 @@ services:
       app-01:
         condition: service_healthy
       app-02:
+        condition: service_healthy
+      app-03:
         condition: service_healthy
     networks: [frontend]
 networks:
