@@ -1,0 +1,20 @@
+# After the video: nginx was still publishing 8080 (never recreated after PUBLIC_PORT=8090).
+$ docker ps --format "{{.Names}}: {{.Ports}}"   (before)
+nginx: 127.0.0.1:8080->80/tcp
+$ docker compose up -d --wait nginx
+ Container app-02 Healthy 
+ Container nginx Healthy 
+$ docker ps (after)
+nginx: 127.0.0.1:8090->80/tcp
+
+{"instance_id":"app-03","service":"barq-api","status":"alive","version":"2.0.0"}
+ [HTTP 200]
+port 8080 -> 000
+
+$ python3 validate.py --url http://127.0.0.1:8090
+46/46 checks passed
+RESULT: PASS
+$ python3 failure_test.py --url http://127.0.0.1:8090
+  [during failure] requests=95 errors=0 error_rate=0.00% p95=0.037s max=2.026s served_by={'app-03': 48, 'app-01': 47}
+11/11 checks passed
+RESULT: PASS
