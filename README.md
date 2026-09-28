@@ -2,7 +2,7 @@
 
 # BARQ DevOps Internship Task
 
-A Flask API running as two instances behind NGINX, with PostgreSQL and Redis, started with Docker Compose.
+A Flask API running as three instances behind NGINX, with PostgreSQL and Redis, started with Docker Compose.
 I started from the supplied broken environment (tag `starter-v2.0.0`, commit `8442da3`), investigated
 and fixed it, and added validation, failure, backup/restore scripts and CI.
 
@@ -20,13 +20,13 @@ and fixed it, and added validation, failure, backup/restore scripts and CI.
 ## Architecture
 
 ```
-laptop 127.0.0.1:8080
+laptop 127.0.0.1:8090
         │
      nginx  (only published port; health: /nginx-health on 127.0.0.1:8081 inside the container)
         │   frontend network
-  ┌─────┴─────┐
-app-01      app-02   (Flask, uid 10001, health: /health, readiness: /ready)
-  └─────┬─────┘
+  ┌─────────┼─────────┐
+app-01    app-02    app-03   (Flask, uid 10001, health: /health, readiness: /ready)
+  └─────────┼─────────┘
         │   backend network (internal: true)
  postgres (volume postgres-data)     redis (AOF on volume redis-data)
 ```
@@ -62,18 +62,18 @@ docker compose ps
 ```
 
 The project name is `barq-assessment` (set in `docker-compose.yml`). Startup order: postgres and redis
-become healthy, then app-01 and app-02, then nginx.
+become healthy, then app-01, app-02 and app-03, then nginx.
 
 ## Use the API
 
 ```bash
-curl -i http://127.0.0.1:8080/health
-curl -i http://127.0.0.1:8080/ready
-curl -i http://127.0.0.1:8080/instance
-curl -H 'Content-Type: application/json' -d '{"title":"Video proof"}' http://127.0.0.1:8080/records
-curl http://127.0.0.1:8080/records
-curl http://127.0.0.1:8080/counter
-for i in 1 2 3 4 5 6; do curl -s http://127.0.0.1:8080/instance; echo; done   # alternates app-01 / app-02
+curl -i http://127.0.0.1:8090/health
+curl -i http://127.0.0.1:8090/ready
+curl -i http://127.0.0.1:8090/instance
+curl -H 'Content-Type: application/json' -d '{"title":"Video proof"}' http://127.0.0.1:8090/records
+curl http://127.0.0.1:8090/records
+curl http://127.0.0.1:8090/counter
+for i in 1 2 3 4 5 6 7 8 9; do curl -s http://127.0.0.1:8090/instance; echo; done   # rotates app-01 / app-02 / app-03
 ```
 
 ## Stop and start
@@ -88,9 +88,8 @@ docker compose up -d --wait
 ## Tests
 
 ```bash
-python3 validate.py                      # 41 PASS/FAIL checks, exit 1 if any fails
-python3 validate.py --url http://127.0.0.1:8090   # after changing PUBLIC_PORT
-python3 failure_test.py                  # stops app-02 under traffic, restores it, checks recovery (~40 s)
+python3 validate.py --url http://127.0.0.1:8090       # 46 PASS/FAIL checks with three apps, exit 1 if any fails
+python3 failure_test.py --url http://127.0.0.1:8090   # stops app-02 under traffic, restores it, checks recovery (~40 s)
 python3 scripts/analyze_logs.py          # answers the log questions from logs/ (read-only)
 docker run --rm -v "$PWD/tests:/srv/tests:ro" -w /srv barq-assessment-app-01 \
   python -m unittest discover -s tests -v   # the supplied app unit tests
@@ -105,10 +104,10 @@ always starts it again at the end.
 
 ```bash
 docker stop app-02
-for i in $(seq 1 10); do curl -s -o /dev/null -w '%{http_code} %{time_total}s\n' http://127.0.0.1:8080/instance; done
+for i in $(seq 1 10); do curl -s -o /dev/null -w '%{http_code} %{time_total}s\n' http://127.0.0.1:8090/instance; done
 docker start app-02
 sleep 15
-for i in $(seq 1 6); do curl -s http://127.0.0.1:8080/instance; echo; done   # app-02 answers again
+for i in $(seq 1 6); do curl -s http://127.0.0.1:8090/instance; echo; done   # app-02 answers again
 ```
 
 ## Backup and restore
@@ -125,9 +124,9 @@ restores in a single transaction.
 ## Persistence test
 
 ```bash
-curl -H 'Content-Type: application/json' -d '{"title":"Persistence proof"}' http://127.0.0.1:8080/records
-docker compose up -d --force-recreate postgres app-01 app-02
-curl http://127.0.0.1:8080/records          # the record is still there
+curl -H 'Content-Type: application/json' -d '{"title":"Persistence proof"}' http://127.0.0.1:8090/records
+docker compose up -d --force-recreate --wait postgres app-01 app-02 app-03
+curl http://127.0.0.1:8090/records          # the record is still there
 ```
 
 ## CI
@@ -147,10 +146,16 @@ rm -rf backups/                              # local backups
 Do not use `--volumes` during persistence tests, and avoid global `docker system prune` commands on a
 shared machine.
 
-## Recorded challenge
+## Recorded challenge and final state
 
-`./video_challenge.sh` is the supplied challenge script. It is run once, for the first time, during the
-video recording, and its receipt is kept in `.assessment/challenge.json`.
+`./video_challenge.sh` is the supplied challenge script. I ran it once, for the first time, during the
+video recording (receipt `83bb183c37e3475882619fdf658ad540`, kept in `.assessment/challenge.json`).
+
+The final setup is three app instances on public port 8090 (commit `23a669a`, made on camera; its
+message says "8080" by mistake, the change itself is 8090). In the video, nginx was not recreated after
+the port change, so 8090 did not answer. After the recording I recreated nginx with
+`docker compose up -d --wait nginx` and verified 8090 (`evidence/46-post-video-port-8090.txt`, commit
+`d34a4f9`). No configuration was changed after the video. See `docs/EVIDENCE_INDEX.md`.
 
 ## Answers to the task questions
 
@@ -168,7 +173,7 @@ app still returned 200. I counted one request per unique `request_id` in access.
 malformed lines and exact duplicates, so retried requests are counted once. Details: `log_analysis.md`.
 
 **How do requests flow? Why these ports, networks and readiness checks?**
-Client → `127.0.0.1:8080` → nginx → app-01 or app-02 on port 8080 (frontend network) → PostgreSQL 5432 and
+Client → `127.0.0.1:8090` → nginx → app-01, app-02 or app-03 on port 8080 (frontend network) → PostgreSQL 5432 and
 Redis 6379 (backend network). Only nginx is published, and only on 127.0.0.1, because nothing else needs to
 be reached from outside. nginx is not on the backend network, so it cannot reach the databases. The
 container health check uses `/health` (liveness), so a database outage does not mark the apps dead;

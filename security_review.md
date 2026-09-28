@@ -63,7 +63,7 @@ The checks for Part B were run on the final setup (`evidence/44-security-review-
 - Impact: Logs could fill the disk, which would also stop Postgres and Redis from writing. The exact version helps an attacker look up known vulnerabilities.
 - Implemented fix / commit: A shared `x-logging` block (`max-size: 10m`, `max-file: 3`, so at most 30 MB per container) used by all services, and `server_tokens off;` in nginx (14415e5).
 - Production follow-up: Central logging (B3) and image scanning (B6).
-- How to verify: `docker inspect -f '{{.HostConfig.LogConfig.Config}}' nginx` shows `max-file:3 max-size:10m`, and `curl -sI http://127.0.0.1:8080/health | grep -i server` shows `Server: nginx` without a version (`evidence/45-quick-hardening-retest.txt`).
+- How to verify: `docker inspect -f '{{.HostConfig.LogConfig.Config}}' nginx` shows `max-file:3 max-size:10m`, and `curl -sI http://127.0.0.1:8090/health | grep -i server` shows `Server: nginx` without a version (`evidence/45-quick-hardening-retest.txt`).
 
 ## Part B: Open risks and planned improvements (not implemented)
 
